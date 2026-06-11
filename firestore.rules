@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fetch user profile data from /users/{uid}
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Check user roles
+    function isLandlord() {
+      return isAuthenticated() && getUserData().role == 'LANDLORD';
+    }
+    
+    function isResident() {
+      return isAuthenticated() && getUserData().role == 'RESIDENT';
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'ADMIN';
+    }
+    
+    // Rule for user profiles
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Rules for Landlords & Tenants (Multi-Tenant isolation)
+    match /tenants/{landlordId} {
+      // Landlord can read/write their own tenant root
+      allow read, write: if isAuthenticated() && (request.auth.uid == landlordId || isAdmin());
+      
+      // Properties
+      match /properties/{propertyId} {
+        // Landlord owns it, residents linked can read it
+        allow read: if isAuthenticated() && (request.auth.uid == landlordId || isResident() || isAdmin());
+        allow write: if isLandlord() && request.auth.uid == landlordId;
+      }
+      
+      // Residents (Tenants details)
+      match /residents/{residentId} {
+        allow read: if isAuthenticated() && (request.auth.uid == landlordId || request.auth.uid == residentId || isAdmin());
+        allow write: if isLandlord() && request.auth.uid == landlordId;
+      }
+      
+      // Payments / Invoices
+      match /payments/{paymentId} {
+        // Both landlord and the specific resident can read
+        allow read: if isAuthenticated() && (
+          request.auth.uid == landlordId || 
+          (isResident() && resource.data.residentId == request.auth.uid) ||
+          isAdmin()
+        );
+        // Only landlord can create/delete; resident can update (simulate marking as paid)
+        allow create, delete: if isLandlord() && request.auth.uid == landlordId;
+        allow update: if isAuthenticated() && (
+          request.auth.uid == landlordId ||
+          (isResident() && request.auth.uid == resource.data.residentId)
+        );
+      }
+      
+      // Maintenance Requests
+      match /maintenance/{requestId} {
+        // Both landlord and resident can read/write
+        allow read: if isAuthenticated() && (
+          request.auth.uid == landlordId || 
+          (isResident() && (resource.data.residentId == request.auth.uid || request.resource.data.residentId == request.auth.uid)) ||
+          isAdmin()
+        );
+        // Landlord can modify status, resident can submit new ones
+        allow create: if isAuthenticated() && (
+          (isResident() && request.resource.data.residentId == request.auth.uid) ||
+          (isLandlord() && request.auth.uid == landlordId)
+        );
+        allow update, delete: if isAuthenticated() && (
+          request.auth.uid == landlordId ||
+          (isResident() && resource.data.residentId == request.auth.uid)
+        );
+      }
+      
+      // Shared Documents
+      match /documents/{documentId} {
+        allow read: if isAuthenticated() && (
+          request.auth.uid == landlordId || 
+          (isResident() && resource.data.residentId == request.auth.uid) ||
+          isAdmin()
+        );
+        allow write: if isLandlord() && request.auth.uid == landlordId;
+      }
+    }
+  }
+}

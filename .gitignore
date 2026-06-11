@@ -1,0 +1,18 @@
+# Built artifacts
+**/build/
+/build/
+app/build/
+
+# Gradle files
+.gradle/
+/local.properties
+/local.properties
+.kotlin/
+
+# IDE specific files
+.idea/
+*.iml
+.DS_Store
+Captures/
+.externalNativeBuild/
+.cxx/
