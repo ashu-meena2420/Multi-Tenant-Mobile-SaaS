@@ -274,8 +274,8 @@ fun LandlordDashboardScreen(
         var email by remember { mutableStateOf("") }
         var phone by remember { mutableStateOf("") }
         var unit by remember { mutableStateOf("") }
-        var leaseStart by remember { mutableStateOf("01-06-2026") }
-        var leaseEnd by remember { mutableStateOf("31-05-2027") }
+        var leaseStart by remember { mutableStateOf("") }
+        var leaseEnd by remember { mutableStateOf("") }
         var formError by remember { mutableStateOf("") }
 
         AlertDialog(
@@ -341,7 +341,7 @@ fun LandlordDashboardScreen(
     if (showAddInvoiceDialog) {
         var selectedResId by remember { mutableStateOf(residentsList.firstOrNull()?.id ?: "") }
         var amount by remember { mutableStateOf("") }
-        var dueDate by remember { mutableStateOf("01-07-2026") }
+        var dueDate by remember { mutableStateOf("") }
         var notes by remember { mutableStateOf("") }
 
         AlertDialog(
