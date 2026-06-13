@@ -1,5 +1,7 @@
 # Multi-Tenant Property Management App (PropManager)
 
+## This is an Android app I built during my internship at CODTECH
+
 ## Intern Project Details
 - **INTERN ID:** CITS2358
 - **FULL NAME:** Ashu meena
